@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>Datatables editor test</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="../dtEditor.js"></script>
+    </head>
+    <body>
+        <table id="table">
+            <thead>
+                <tr class="filters">
+                    <th>Column 1</th>
+                    <th>Column 2</th>
+                    <th>Column 3</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Cell 1</td>
+                    <td>Cell 2</td>
+                    <td>Cell 3</td>
+                </tr>
+                <tr>
+                    <td>Cell 4</td>
+                    <td>Cell 5</td>
+                    <td>Cell 6</td>
+                </tr>
+            </tbody>
+        </table>
+        <script>
+            $("#table").DataTable({
+                dom: "frtBi",
+                buttons: [
+                    {text: '<i class="fa fa-plus-circle"></i>', editType: "add"},
+                    {text: '<i class="fa fa-pencil-square-o"></i>', editType: "edit"},
+                    {text: '<i class="fa fa-times-circle"></i>', editType: "delete"}
+                ],
+                select: {style: "os", selector: "tr"},
+                order: [],
+                dtEditor: {
+                    addUrl: "ADD_URL",
+                    editUrl: "EDIT_URL",
+                    deleteUrl: "DELETE_URL",
+                    //After form show event for add
+                    afterAddFormShow: function() {
+                        //
+                    },
+                    //After form show event for edit
+                    afterEditFormShow: function(row) {
+                        //
+                    },
+                    //Fill the labels for other different languages
+                    labels: {
+                        close: "",
+                        save: "",
+                        yes: "",
+                        addFormTitle: "",
+                        editFormTitle: "",
+                        deleteFormTitle: "",
+                        deleteFormBody: "",
+                        noItemSelected: "",
+                        error: ""
+                    }
+                },
+                "columns": [
+                    {data: "column1", editable: true, editType: "select"},
+                    {data: "column2", editable: true, editType: "select", options: {'key1': 'val1', 'key2': 'val2', 'key3': 'val3'}, selected: 'key3'},
+                    {data: "column3", editable: true, editType: "textarea"}
+                ]
+            });
+        </script>
+    </body>
+</html>
