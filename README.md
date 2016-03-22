@@ -1,2 +1,3 @@
 # datatables-editor
-Simple editor plugin for Datatables
+Simple modal editor plugin for Datatables
+!["Editor plugin"](dtEditor.png)
