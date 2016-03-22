@@ -32,8 +32,8 @@
 'use strict';
 var DataTable = $.fn.dataTable;
 var _instCounter = 0;
-
-var dtEditor = function(dt, config) {
+DataTable.dtEditor = {};
+DataTable.dtEditor = function(dt, config) {
 	if ( config === true ) {
 		config = {};
 	}
@@ -44,10 +44,10 @@ var dtEditor = function(dt, config) {
 		config = { dtEditor: config };
 	}
 
-	this.c = $.extend( true, {}, dtEditor.defaults, config );
+	this.c = $.extend( true, {}, DataTable.dtEditor.defaults, config );
 
 	// Don't want a deep copy for the buttons
-	if ( config.dtEditor ) {
+	if ( config && config.dtEditor ) {
 		this.c.dtEditor = config.dtEditor;
 	}
 	if(typeof this.c.labels == "undefined") {
@@ -90,7 +90,7 @@ var dtEditor = function(dt, config) {
 	};
 }
 
-$.extend( dtEditor.prototype, {
+$.extend( DataTable.dtEditor.prototype, {
 	init: function() {
 		var buttons = this.getButtons();
 		var _this = this;
@@ -138,12 +138,16 @@ $.extend( dtEditor.prototype, {
 			_this.deleteModal(_this.c.labels.deleteFormTitle);
 		}
 	},
-	formModal: function(mode, formTitle) {
+	formModal: function(mode, formTitle, rowId) {
 		var _this = this;
 		var row;
 		var colData;
 		if("edit" == mode) {
-			row = this.s.dt.row({selected: true}).data();
+            if(typeof rowId != "undefined" && rowId !== false) {
+                row = this.s.dt.row("#" + rowId).data();
+            } else {
+                row = this.s.dt.row({selected: true}).data();
+            }
 			if(typeof row == "undefined" || !row) {
 				this.getModal("", this.c.labels.noItemSelected, '<button type="button" class="btn btn-primary" data-dismiss="modal">' + this.c.labels.close + '</button>');
 				return;
@@ -151,6 +155,9 @@ $.extend( dtEditor.prototype, {
 		}
 		var columns = this.getEditableColumns();
 		var html = "";
+        if(this.c.modalBodyTemplate) {
+            html += this.c.modalBodyTemplate;
+        }
 		for(var i in columns) {
 			if("edit" == mode) {
 				colData = row[columns[i].data];
@@ -158,8 +165,20 @@ $.extend( dtEditor.prototype, {
 					colData = "";
 				}
 			}
-			html += '<div class="form-group"><div class="row"><label class="control-label">' + columns[i].sTitle + '</label></div>';
-			html += '<div>';
+            var columnTitle = columns[i].sTitle;
+            if(typeof this.c.modalBodyTemplate == "undefined" || !this.c.modalBodyTemplate) {
+                html += '<div class="form-group"><div class="row">';
+
+                if(typeof this.c.editLabelTag != undefined && this.c.editLabelTag) {
+                    html += '<' + this.c.editLabelTag + '>' + columnTitle + '</' + this.c.editLabelTag + '>';
+                } else {
+                    html += '<label class="control-label">' + columnTitle + '</label>';
+                }
+                html += '</div><div>';
+            } else {
+                html = html.replace("{title-" + columns[i].data + "}", columnTitle);
+            }
+            var columnEl;
 			if(columns[i].editType && columns[i].editType == "select") {
                 var options = [];
                 if(columns[i].options) {
@@ -167,20 +186,24 @@ $.extend( dtEditor.prototype, {
                         options.push('<option value="' + j + '"' + (("edit" == mode && columns[i].options[j] == colData) || (typeof columns[i].selected != "undefined" && columns[i].selected == j)?' selected="selected"':'') + '>' + columns[i].options[j] + '</option>');
                     }
                 }
-				html += '<select id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control">' + (options.length?options.join(""):"") + '</select>';
+				columnEl = '<select id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control">' + (options.length?options.join(""):"") + '</select>';
 			} else if(columns[i].editType && columns[i].editType == "file") {
-                html += '<input type="file" id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control"' + (typeof columns[i].multiple !="undefined" && columns[i].multiple?' multiple="multiple"':"") + ' />';
+                columnEl = '<input type="file" id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control"' + (typeof columns[i].multiple !="undefined" && columns[i].multiple?' multiple="multiple"':"") + ' />';
                 if("edit" == mode) {
-                    html += '<span>' + colData + '</span>';
+                    columnEl += '<span>' + colData + '</span>';
                 }
             } else if(columns[i].editType && columns[i].editType == "textarea") {
-                html += '<textarea id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control">' + ("edit" == mode?colData:'') + '</textarea>';
+                columnEl = '<textarea id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control">' + ("edit" == mode?colData:'') + '</textarea>';
             } else {
-				html += '<input id="' + columns[i].data + '" name="' + columns[i].data + '" type="text" class="form-control"' + ("edit" == mode?'value="' + colData + '"':'') + ' />';
+				columnEl = '<input id="' + columns[i].data + '" name="' + columns[i].data + '" type="text" class="form-control"' + ("edit" == mode?'value="' + colData + '"':'') + ' />';
 			}
-			html += '</div>';
-			
-			html += '<div>';
+            if(typeof this.c.modalBodyTemplate == "undefined" || !this.c.modalBodyTemplate) {
+                html += columnEl;
+                html += '</div>';
+                html += '<div>';
+            } else {
+                html = html.replace("{" + columns[i].data + "}", columnEl);
+            }
 		}
 		var modal = this.getModal(formTitle, html);
 		var modalObj = $(modal);
@@ -257,13 +280,26 @@ $.extend( dtEditor.prototype, {
             this.getModal(this.c.labels.error, data.responseText, '<button type="button" class="btn btn-primary" data-dismiss="modal">' + this.c.labels.close + '</button>');
         }
     },
-	deleteModal: function(formTitle) {
+    /**
+     * 
+     * @param {String} formTitle
+     * @param {Integer|Object} rowId
+     */
+	deleteModal: function(formTitle, rowId) {
 		var _this = this;
-		var rows = this.s.dt.rows({selected: true}).data();
 		var rowIds = [];
-		for(var i=0;i<rows.length;i++) {
-			rowIds.push(rows[i].id);
-		}
+        if(typeof rowId != "undefined" && rowId !== false) {
+            if(typeof rowId == "object") {//if array
+                rowIds = rowId;
+            } else {
+                rowIds.push(rowId);
+            }
+        } else {
+            var rows = this.s.dt.rows({selected: true}).data();
+            for(var i=0;i<rows.length;i++) {
+                rowIds.push(rows[i].id);
+            }
+        }
 		if(rowIds.length <= 0 ) {
 			this.getModal("", this.c.labels.noItemSelected, '<button type="button" class="btn btn-primary" data-dismiss="modal">' + this.c.labels.close + '</button>');
 			return;
@@ -319,8 +355,18 @@ $.extend( dtEditor.prototype, {
 	}
 });
 
-$.fn.dataTable.dtEditor = dtEditor;
-$.fn.DataTable.dtEditor = dtEditor;
+var apiRegister = DataTable.Api.register;
+apiRegister( 'dtEditor()', function () {
+	return this.iterator( 'table', function ( ctx ) {
+        var api = new DataTable.Api( ctx );
+        var settings = api.settings()[0]
+        var opts = settings.oInit.dtEditor || DataTable.defaults.dtEditor;
+		return new DataTable.dtEditor(settings, opts);
+	} );
+} );
+
+$.fn.dataTable.dtEditor = DataTable.dtEditor;
+$.fn.DataTable.dtEditor = DataTable.dtEditor;
 
 $(document).on( 'init.dt plugin-init.dt', function (e, settings, json) {
 	if ( e.namespace !== 'dt' ) {
@@ -329,9 +375,11 @@ $(document).on( 'init.dt plugin-init.dt', function (e, settings, json) {
 	var opts = settings.oInit.dtEditor || DataTable.defaults.dtEditor;
 	
 	if ( opts && !settings._dtEditor) {
-		new dtEditor( settings, opts ).init();
+        console.log("ooo:");
+        console.log(opts);
+		new DataTable.dtEditor( settings, opts ).init();
 	}
 } );;
 
-return dtEditor;
+return DataTable.dtEditor;
 }));
