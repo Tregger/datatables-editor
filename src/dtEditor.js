@@ -234,7 +234,7 @@ $.extend( DataTable.dtEditor.prototype, {
                     }
                     continue;
                 }
-				var value = $("#" + columns[i].data).val();
+				var value = $("#" + columns[i].data, modalObj).val();
 				if(value === null) {
 					value = "";
 				}
@@ -375,8 +375,6 @@ $(document).on( 'init.dt plugin-init.dt', function (e, settings, json) {
 	var opts = settings.oInit.dtEditor || DataTable.defaults.dtEditor;
 	
 	if ( opts && !settings._dtEditor) {
-        console.log("ooo:");
-        console.log(opts);
 		new DataTable.dtEditor( settings, opts ).init();
 	}
 } );;
