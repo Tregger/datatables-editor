@@ -179,6 +179,7 @@ $.extend( DataTable.dtEditor.prototype, {
                 html = html.replace("{title-" + columns[i].data + "}", columnTitle);
             }
             var columnEl;
+            var placeholder = (typeof columns[i].editOptions != "undefined" && typeof columns[i].editOptions.placeholder != "undefined"?columns[i].editOptions.placeholder:"");
 			if(columns[i].editType && columns[i].editType == "select") {
                 var options = [];
                 if(columns[i].options) {
@@ -186,16 +187,18 @@ $.extend( DataTable.dtEditor.prototype, {
                         options.push('<option value="' + j + '"' + (("edit" == mode && columns[i].options[j] == colData) || (typeof columns[i].selected != "undefined" && columns[i].selected == j)?' selected="selected"':'') + '>' + columns[i].options[j] + '</option>');
                     }
                 }
-				columnEl = '<select id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control">' + (options.length?options.join(""):"") + '</select>';
+				columnEl = '<select id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control"' + (placeholder?' placeholder="' + placeholder + '"':'') + '>' + (options.length?options.join(""):"") + '</select>';
 			} else if(columns[i].editType && columns[i].editType == "file") {
-                columnEl = '<input type="file" id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control"' + (typeof columns[i].multiple !="undefined" && columns[i].multiple?' multiple="multiple"':"") + ' />';
+                columnEl = '<input type="file" id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control"' + (typeof columns[i].multiple !="undefined" && columns[i].multiple?' multiple="multiple"':"") + (placeholder?' placeholder="' + placeholder + '"':'') + ' />';
                 if("edit" == mode) {
                     columnEl += '<span>' + colData + '</span>';
                 }
             } else if(columns[i].editType && columns[i].editType == "textarea") {
-                columnEl = '<textarea id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control">' + ("edit" == mode?colData:'') + '</textarea>';
-            } else {
-				columnEl = '<input id="' + columns[i].data + '" name="' + columns[i].data + '" type="text" class="form-control"' + ("edit" == mode?'value="' + colData + '"':'') + ' />';
+                columnEl = '<textarea id="' + columns[i].data + '" name="' + columns[i].data + '" class="form-control"' + (placeholder?' placeholder="' + placeholder + '"':'') + '>' + ("edit" == mode?colData:'') + '</textarea>';
+            } else if(columns[i].editType && columns[i].editType == "checkbox") {
+				columnEl = '<input id="' + columns[i].data + '" name="' + columns[i].data + '" type="checkbox"' + ("edit" == mode && colData?' checked="checked"':'') + (placeholder?' placeholder="' + placeholder + '"':'') + ' />';
+			} else {
+				columnEl = '<input id="' + columns[i].data + '" name="' + columns[i].data + '" type="text" class="form-control"' + ("edit" == mode?'value="' + colData + '"':'') + (placeholder?' placeholder="' + placeholder + '"':'') + ' />';
 			}
             if(typeof this.c.modalBodyTemplate == "undefined" || !this.c.modalBodyTemplate) {
                 html += columnEl;
@@ -219,27 +222,28 @@ $.extend( DataTable.dtEditor.prototype, {
 				data = _this.c.postData;
 			}
             var formData = null;
-			for(var i in columns) {
-                if("file" == columns[i].editType) {
+            $("[name]", modalObj).each(function(){
+                var obj = $(this);
+                if("file" == obj.attr("type")) {
                     if(!formData) {
                         formData = new FormData();
                     }
-                    var files = $("#" + columns[i].data)[0].files;
-                    var colName = columns[i].data + (typeof columns[i].multiple != "undefined" && columns[i].multiple?"[]":"");
+                    var files = obj[0].files;
+                    var colName = obj.attr("name") + (obj.is("[multiple]")?"[]":"");
                     for(var j in files) {
                         if(!files.hasOwnProperty(j)) {
                             continue;
                         }
                         formData.append(colName, files[j]);
                     }
-                    continue;
+                    return;
+                } else if("checkbox" == obj.attr("type")) {
+                    data[obj.attr("name")] = obj.is(":checked")?obj.val():"";
+                    return;
                 }
-				var value = $("#" + columns[i].data, modalObj).val();
-				if(value === null) {
-					value = "";
-				}
-				data[columns[i].data] = value;
-			}
+                data[obj.attr("name")] = obj.val();
+                
+            });
             var ajaxConf = {
 				url: (mode=="add"?_this.c.addUrl:_this.c.editUrl),
 				method: "POST",
