@@ -80,6 +80,9 @@ DataTable.dtEditor = function(dt, config) {
     if(!this.c.labels.error) {
 		this.c.labels.error = "Error!";
 	}
+    if(!this.c.labels.saving) {
+		this.c.labels.saving = "Saving..";
+	}
 
 	this.s = {
 		dt: new DataTable.Api( dt ),
@@ -218,6 +221,10 @@ $.extend( DataTable.dtEditor.prototype, {
 		}
 		modalObj.find("button[type='submit']").on("click", function(){
 			var data = {};
+            var buttonObj = $(this);
+            var buttonObjValue = buttonObj.html();
+            buttonObj.prop("disabled", true);
+            buttonObj.html(_this.c.labels.saving);
 			if(typeof _this.c.postData != "undefined" && _this.c.postData) {
 				data = _this.c.postData;
 			}
@@ -250,6 +257,8 @@ $.extend( DataTable.dtEditor.prototype, {
 				data: (formData?formData:data),
                 dataType: "json",
                 error: function(data) {
+                    buttonObj.html(buttonObjValue);
+                    buttonObj.prop("disabled", false);
                     _this.errorMethod(data)
                 }
 			};
