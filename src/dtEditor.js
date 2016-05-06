@@ -83,6 +83,12 @@ DataTable.dtEditor = function(dt, config) {
     if(!this.c.labels.saving) {
 		this.c.labels.saving = "Saving..";
 	}
+    if(!this.c.errorHandle) {
+        this.c.errorHandle = "error";
+    }
+    if(!this.c.errorMessageHandle) {
+        this.c.errorMessageHandle = "message";
+    }
 
 	this.s = {
 		dt: new DataTable.Api( dt ),
@@ -275,9 +281,16 @@ $.extend( DataTable.dtEditor.prototype, {
             } else if("edit" == mode) {
 				data.id = row.id;
 			}
-			$.ajax(ajaxConf).done(function(json){
+			$.ajax(ajaxConf).done(function(data){
+                if(typeof data == "object" && data[_this.c.errorHandle] && data[_this.c.errorMessageHandle]) {
+                    //if returned data contains, error and message display them
+                    buttonObj.html(buttonObjValue);
+                    buttonObj.prop("disabled", false);
+                    _this.getModal(_this.c.labels.error, data.message, '<button type="button" class="btn btn-primary" data-dismiss="modal">' + _this.c.labels.close + '</button>');
+                } else {
+                    modalObj.modal('hide');
+                }
 				_this.s.dt.ajax.reload();
-				modalObj.modal('hide');
 			});
 		});
 	},
@@ -285,8 +298,12 @@ $.extend( DataTable.dtEditor.prototype, {
         try {
             var obj = JSON.parse(data.responseText);
             var html = [];
-            for(var i in obj) {
-                html.push(obj[i]);
+            if(obj[this.c.errorMessageHandle]) {
+                html = (typeof obj[this.c.errorMessageHandle] == "string"?[obj[this.c.errorMessageHandle]]:obj[this.c.errorMessageHandle]);
+            } else {
+                for(var i in obj) {
+                    html.push(obj[i]);
+                }
             }
             this.getModal(this.c.labels.error, html.join("<br/>"), '<button type="button" class="btn btn-primary" data-dismiss="modal">' + this.c.labels.close + '</button>');
         } catch(err) {
